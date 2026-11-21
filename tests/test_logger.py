@@ -3,7 +3,6 @@
 import io
 import json
 import logging
-import pytest
 
 from pqsysguard.utils.logger import JsonFormatter, get_logger, setup_logging
 
@@ -43,9 +42,9 @@ def test_sensitive_field_redaction() -> None:
         exc_info=None,
     )
     # Attach sensitive attributes
-    record.api_token = "secret-token-xyz"  # type: ignore[attr-defined]
-    record.private_key = "super_secret_bytes"  # type: ignore[attr-defined]
-    record.safe_metric = "disk_usage_ok"  # type: ignore[attr-defined]
+    record.api_token = "secret-token-xyz"
+    record.private_key = "super_secret_bytes"
+    record.safe_metric = "disk_usage_ok"
 
     formatter = JsonFormatter()
     output = formatter.format(record)

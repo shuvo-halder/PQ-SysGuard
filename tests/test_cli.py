@@ -1,6 +1,7 @@
 """Unit and integration tests for the Typer CLI commands."""
 
 from pathlib import Path
+
 from typer.testing import CliRunner
 
 from pqsysguard import __version__
@@ -26,10 +27,10 @@ def test_cli_help(runner: CliRunner) -> None:
 
 
 def test_cli_monitor(runner: CliRunner) -> None:
-    """Test CLI monitor placeholder command."""
+    """Test CLI monitor default command runs snapshot."""
     result = runner.invoke(app, ["monitor"])
     assert result.exit_code == 0
-    assert "System Health Overview" in result.stdout
+    assert "System & Resource Overview" in result.stdout
     assert "CPU" in result.stdout
 
 

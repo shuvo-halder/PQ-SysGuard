@@ -9,9 +9,21 @@ database:
 
 monitor:
   interval_seconds: 5
-  cpu_threshold_percent: 85.0
-  memory_threshold_percent: 85.0
-  disk_threshold_percent: 90.0
+  cpu_warning_percent: 75.0
+  cpu_critical_percent: 90.0
+  memory_warning_percent: 80.0
+  memory_critical_percent: 90.0
+  swap_warning_percent: 50.0
+  swap_critical_percent: 80.0
+  disk_warning_percent: 80.0
+  disk_critical_percent: 90.0
+  inode_warning_percent: 80.0
+  inode_critical_percent: 90.0
+  monitored_services:
+    - "ssh"
+    - "sshd"
+    - "systemd-journald"
+    - "cron"
 
 troubleshoot:
   journal_log_lines: 100

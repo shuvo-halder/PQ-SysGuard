@@ -4,10 +4,10 @@ Provides JSON-formatted logging for automated ingestion and auditability,
 as well as a human-friendly console formatter when requested.
 """
 
-from datetime import datetime, timezone
 import json
 import logging
 import sys
+from datetime import UTC, datetime
 from typing import Any
 
 # Sensitive keys that must NEVER appear in log records
@@ -30,7 +30,7 @@ class JsonFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         log_payload: dict[str, Any] = {
-            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),

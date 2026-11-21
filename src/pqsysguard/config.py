@@ -9,8 +9,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import Any
-import yaml
 
+import yaml
 from pydantic import BaseModel, Field
 
 
@@ -30,12 +30,22 @@ class DatabaseConfig(BaseModel):
 
 
 class MonitorConfig(BaseModel):
-    """Health monitoring parameters."""
+    """Health monitoring parameters and alerting thresholds."""
 
     interval_seconds: int = Field(default=5, ge=1)
-    cpu_threshold_percent: float = Field(default=85.0, ge=0.0, le=100.0)
-    memory_threshold_percent: float = Field(default=85.0, ge=0.0, le=100.0)
-    disk_threshold_percent: float = Field(default=90.0, ge=0.0, le=100.0)
+    cpu_warning_percent: float = Field(default=75.0, ge=0.0, le=100.0)
+    cpu_critical_percent: float = Field(default=90.0, ge=0.0, le=100.0)
+    memory_warning_percent: float = Field(default=80.0, ge=0.0, le=100.0)
+    memory_critical_percent: float = Field(default=90.0, ge=0.0, le=100.0)
+    swap_warning_percent: float = Field(default=50.0, ge=0.0, le=100.0)
+    swap_critical_percent: float = Field(default=80.0, ge=0.0, le=100.0)
+    disk_warning_percent: float = Field(default=80.0, ge=0.0, le=100.0)
+    disk_critical_percent: float = Field(default=90.0, ge=0.0, le=100.0)
+    inode_warning_percent: float = Field(default=80.0, ge=0.0, le=100.0)
+    inode_critical_percent: float = Field(default=90.0, ge=0.0, le=100.0)
+    monitored_services: list[str] = Field(
+        default_factory=lambda: ["ssh", "sshd", "systemd-journald", "cron", "crond"]
+    )
 
 
 class TroubleshootConfig(BaseModel):
@@ -173,7 +183,7 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
 
     loaded_dict: dict[str, Any] = {}
     if path_to_load and path_to_load.is_file():
-        with open(path_to_load, "r", encoding="utf-8") as f:
+        with open(path_to_load, encoding="utf-8") as f:
             yaml_content = yaml.safe_load(f)
             if isinstance(yaml_content, dict):
                 loaded_dict = yaml_content

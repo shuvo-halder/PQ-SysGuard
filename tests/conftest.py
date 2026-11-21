@@ -1,8 +1,9 @@
 """Global pytest fixtures and test configuration for PQ-SysGuard."""
 
 import os
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
+
 import pytest
 from typer.testing import CliRunner
 
@@ -29,9 +30,12 @@ database:
 
 monitor:
   interval_seconds: 2
-  cpu_threshold_percent: 75.0
-  memory_threshold_percent: 80.0
-  disk_threshold_percent: 85.0
+  cpu_warning_percent: 75.0
+  cpu_critical_percent: 90.0
+  memory_warning_percent: 80.0
+  memory_critical_percent: 90.0
+  disk_warning_percent: 85.0
+  disk_critical_percent: 95.0
 
 troubleshoot:
   journal_log_lines: 50

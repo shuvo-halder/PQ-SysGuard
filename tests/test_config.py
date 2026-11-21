@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -15,7 +16,8 @@ def test_default_config() -> None:
     assert config.general.log_level == "INFO"
     assert config.general.log_format == "json"
     assert config.monitor.interval_seconds == 5
-    assert config.monitor.cpu_threshold_percent == 85.0
+    assert config.monitor.cpu_warning_percent == 75.0
+    assert config.monitor.cpu_critical_percent == 90.0
     assert config.security.check_root_login is True
     assert config.vault.default_chunk_size == 1048576
     assert config.vault.kem_algorithm == "ML-KEM-768"
@@ -31,7 +33,7 @@ def test_load_from_yaml(temp_config_yaml: Path) -> None:
     assert config.general.log_format == "text"
     assert config.database.path == "test.db"
     assert config.monitor.interval_seconds == 2
-    assert config.monitor.cpu_threshold_percent == 75.0
+    assert config.monitor.cpu_warning_percent == 75.0
     assert config.troubleshoot.journal_log_lines == 50
     assert config.troubleshoot.failed_units_check is False
     assert config.security.ssh_config_path == "/custom/sshd_config"
@@ -45,13 +47,13 @@ def test_env_overrides(clean_env: None, temp_config_yaml: Path) -> None:
     os.environ["PQSYSGUARD_GENERAL__LOG_LEVEL"] = "ERROR"
     os.environ["PQSYSGUARD_MONITOR__INTERVAL_SECONDS"] = "42"
     os.environ["PQSYSGUARD_TROUBLESHOOT__FAILED_UNITS_CHECK"] = "true"
-    os.environ["PQSYSGUARD_MONITOR__CPU_THRESHOLD_PERCENT"] = "92.5"
+    os.environ["PQSYSGUARD_MONITOR__CPU_WARNING_PERCENT"] = "92.5"
 
     config = load_config(temp_config_yaml)
     assert config.general.log_level == "ERROR"
     assert config.monitor.interval_seconds == 42
     assert config.troubleshoot.failed_units_check is True
-    assert config.monitor.cpu_threshold_percent == 92.5
+    assert config.monitor.cpu_warning_percent == 92.5
 
 
 def test_invalid_validation() -> None:
@@ -60,7 +62,7 @@ def test_invalid_validation() -> None:
         AppConfig(monitor={"interval_seconds": 0})  # type: ignore[arg-type]
 
     with pytest.raises(ValidationError):
-        AppConfig(monitor={"cpu_threshold_percent": 150.0})  # type: ignore[arg-type]
+        AppConfig(monitor={"cpu_warning_percent": 150.0})  # type: ignore[arg-type]
 
     with pytest.raises(ValidationError):
         AppConfig(vault={"default_chunk_size": 128})  # type: ignore[arg-type]
