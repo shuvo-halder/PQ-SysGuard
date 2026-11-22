@@ -28,6 +28,7 @@ monitor:
 troubleshoot:
   journal_log_lines: 100
   failed_units_check: true
+  rules_file: "config/troubleshoot_rules.yaml"
 
 security:
   ssh_config_path: "/etc/ssh/sshd_config"

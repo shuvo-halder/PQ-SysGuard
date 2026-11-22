@@ -1,0 +1,44 @@
+# PQ-SysGuard Troubleshooting Rules
+# Rules define patterns to detect in system logs and journals.
+# New rules can be added here without modifying application source code.
+
+rules:
+  - id: "OOM-001"
+    name: "Out of Memory Killer Event"
+    pattern: "(?:Out of memory: Kill process|invoked oom-killer|oom-reaper|kernel: \\[.*?\\] oom-killer|killed process \\d+)"
+    severity: "CRITICAL"
+    source: "syslog"
+    probable_cause: "System exhausted available physical RAM and swap space, forcing Linux OOM killer to terminate processes."
+    recommended_fix: "Inspect memory consumer with 'pqsysguard monitor snapshot', tune application memory limit, or add swap: 'fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile'."
+
+  - id: "DISK-001"
+    name: "Disk Filesystem Full"
+    pattern: "(?:No space left on device|Write error: No space left|filesystem full|write failed, filesystem is full)"
+    severity: "CRITICAL"
+    source: "syslog"
+    probable_cause: "Target partition or mount point reached 100% disk usage or exhausted available inodes."
+    recommended_fix: "Check space with 'df -h' and 'df -i', clear old package caches with 'apt-get clean' or rotate logs: 'journalctl --vacuum-time=3d'."
+
+  - id: "SYSTEMD-001"
+    name: "Service Crash Loop / Repeated Failure"
+    pattern: "(?:Failed with result '(?:exit-code|core-dump|signal)'|Main process exited, code=exited, status=[1-9]\\d*|Unit .*? has failed|Scheduled restart job, restart counter is at)"
+    severity: "WARNING"
+    source: "journalctl"
+    probable_cause: "A systemd unit failed during startup or exited unexpectedly with a non-zero exit code."
+    recommended_fix: "Inspect detailed service logs: 'journalctl -u <service-name> -n 50 --no-pager' and verify unit configuration with 'systemctl status <service-name>'."
+
+  - id: "AUTH-001"
+    name: "Repeated SSH Authentication Failure"
+    pattern: "(?:Failed password for (?:invalid user )?\\S+ from \\S+|authentication failure;.*rhost=\\S+|PAM \\d+ more authentication failures)"
+    severity: "WARNING"
+    source: "auth.log"
+    probable_cause: "Multiple failed authentication attempts detected, indicating possible SSH brute-force or credential guessing."
+    recommended_fix: "Verify source IP, install and enable fail2ban: 'systemctl status fail2ban', or disable password authentication in '/etc/ssh/sshd_config'."
+
+  - id: "SEGFAULT-001"
+    name: "Process Segmentation Fault / Memory Access Violation"
+    pattern: "(?:segfault at [0-9a-f]+ ip [0-9a-f]+ sp [0-9a-f]+ error \\d+|general protection fault|core dump generated)"
+    severity: "CRITICAL"
+    source: "syslog"
+    probable_cause: "Application binary encountered memory corruption, null pointer dereference, or invalid instruction."
+    recommended_fix: "Inspect coredump with 'coredumpctl list' and 'coredumpctl info', and verify binary packages for corruption via 'dpkg -V' or 'rpm -V'."

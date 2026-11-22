@@ -35,11 +35,11 @@ def test_cli_monitor(runner: CliRunner) -> None:
 
 
 def test_cli_troubleshoot(runner: CliRunner) -> None:
-    """Test CLI troubleshoot placeholder command."""
+    """Test CLI troubleshoot default command runs diagnosis."""
     result = runner.invoke(app, ["troubleshoot"])
     assert result.exit_code == 0
-    assert "Automated Diagnosis" in result.stdout
-    assert "Failed Units" in result.stdout
+    assert "Automated Diagnostic Report" in result.stdout
+    assert "READ-ONLY AUDIT" in result.stdout
 
 
 def test_cli_security_readonly(runner: CliRunner) -> None:

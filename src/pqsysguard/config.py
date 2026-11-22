@@ -53,6 +53,7 @@ class TroubleshootConfig(BaseModel):
 
     journal_log_lines: int = Field(default=100, ge=10)
     failed_units_check: bool = True
+    rules_file: str = "config/troubleshoot_rules.yaml"
 
 
 class SecurityConfig(BaseModel):

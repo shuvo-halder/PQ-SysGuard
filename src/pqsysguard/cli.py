@@ -29,6 +29,10 @@ from pqsysguard.monitor import (
     render_snapshot_view,
     save_snapshot,
 )
+from pqsysguard.troubleshoot import (
+    TroubleshootEngine,
+    display_troubleshoot_report,
+)
 from pqsysguard.utils.logger import get_logger, setup_logging
 
 console = Console()
@@ -254,29 +258,71 @@ def monitor_export(
 
 
 # ---------------------------------------------------------------------------
-# Troubleshoot Subcommands (Placeholder)
+# Troubleshoot Subcommands
 # ---------------------------------------------------------------------------
 @troubleshoot_app.callback(invoke_without_command=True)
 def troubleshoot_default(ctx: typer.Context) -> None:
-    """Analyze system logs and identify failing services or resource bottlenecks."""
+    """Automated system diagnosis and log triage."""
     if ctx.invoked_subcommand is None:
-        console.print(
-            Panel.fit(
-                "[bold yellow]PQ-SysGuard Troubleshooter[/bold yellow]\n"
-                "[dim]Scanning system logs and service statuses...[/dim]",
-                border_style="yellow",
-            )
-        )
-        table = Table(title="Automated Diagnosis (Placeholder)")
-        table.add_column("Check", style="yellow")
-        table.add_column("Result", style="green")
-        table.add_column("Recommendation", style="white")
+        troubleshoot_run(ctx, run_all=True)
 
-        table.add_row("Failed Units (systemd)", "PASSED", "No active failed units found")
-        table.add_row("OOM Killer Events", "PASSED", "No Out-Of-Memory events in journal")
-        table.add_row("Disk Inodes", "PASSED", "All mounted filesystems have > 50% free inodes")
-        console.print(table)
-        console.print("[dim]Diagnostic rules engine will be implemented in Phase 3.[/dim]")
+
+@troubleshoot_app.command("run")
+def troubleshoot_run(
+    ctx: typer.Context,
+    run_all: Annotated[
+        bool,
+        typer.Option(
+            "--all",
+            "-a",
+            help="Run all diagnostic checks and log analysis.",
+        ),
+    ] = True,
+    rules_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--rules-file",
+            "-r",
+            help="Path to custom troubleshooting rules YAML file.",
+        ),
+    ] = None,
+) -> None:
+    """Run automated diagnostic checks and log triage across the system."""
+    app_config = _get_app_config(ctx)
+    target_rules = rules_file or Path(app_config.troubleshoot.rules_file)
+    engine = TroubleshootEngine(rules_file=target_rules)
+    report = engine.run_all()
+    display_troubleshoot_report(report, console=console)
+
+
+@troubleshoot_app.command("check")
+def troubleshoot_check(
+    ctx: typer.Context,
+    name: Annotated[
+        str,
+        typer.Argument(
+            help="Name of check: logs, cpu, memory, disk, systemd, connectivity, ports."
+        ),
+    ],
+    rules_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--rules-file",
+            "-r",
+            help="Path to custom troubleshooting rules YAML file.",
+        ),
+    ] = None,
+) -> None:
+    """Run an individual diagnostic check by name."""
+    app_config = _get_app_config(ctx)
+    target_rules = rules_file or Path(app_config.troubleshoot.rules_file)
+    engine = TroubleshootEngine(rules_file=target_rules)
+    try:
+        report = engine.run_check(name)
+        display_troubleshoot_report(report, console=console)
+    except ValueError as exc:
+        console.print(f"[bold red]Error:[/bold red] {exc}")
+        raise typer.Exit(code=1) from exc
 
 
 # ---------------------------------------------------------------------------
