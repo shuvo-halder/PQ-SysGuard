@@ -47,15 +47,15 @@ def test_cli_security_readonly(runner: CliRunner) -> None:
     result = runner.invoke(app, ["security"])
     assert result.exit_code == 0
     assert "READ-ONLY AUDIT" in result.stdout
-    assert "Audit complete" in result.stdout
+    assert "Security Score" in result.stdout
 
 
 def test_cli_security_apply(runner: CliRunner) -> None:
     """Test CLI security command with explicit --apply flag."""
     result = runner.invoke(app, ["security", "--apply"])
     assert result.exit_code == 0
-    assert "APPLY (Remediation Mode)" in result.stdout
-    assert "Remediation flag detected" in result.stdout
+    assert "READ-ONLY AUDIT" in result.stdout
+    assert "--apply flag passed" in result.stdout
 
 
 def test_cli_vault_keygen(runner: CliRunner, tmp_path: Path) -> None:

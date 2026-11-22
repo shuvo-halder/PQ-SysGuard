@@ -29,6 +29,12 @@ from pqsysguard.monitor import (
     render_snapshot_view,
     save_snapshot,
 )
+from pqsysguard.security import (
+    display_terminal_report,
+    export_html_report,
+    export_json_report,
+    run_full_security_audit,
+)
 from pqsysguard.troubleshoot import (
     TroubleshootEngine,
     display_troubleshoot_report,
@@ -326,7 +332,7 @@ def troubleshoot_check(
 
 
 # ---------------------------------------------------------------------------
-# Security Subcommands (Placeholder)
+# Security Subcommands
 # ---------------------------------------------------------------------------
 @security_app.callback(invoke_without_command=True)
 def security_default(
@@ -335,46 +341,99 @@ def security_default(
         bool,
         typer.Option(
             "--apply",
-            help="Apply remediation steps. Read-only audit by default.",
+            help="Enforce remediation recommendations if available (Read-only by default).",
         ),
     ] = False,
+    output_format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Report output format: text, json, html.",
+        ),
+    ] = "text",
+    output_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            "-o",
+            help="Path to write report.",
+        ),
+    ] = None,
 ) -> None:
-    """Run security hardening checks. Read-only by default; --apply required for fixes."""
+    """Run security hardening audit against CIS benchmarks (Read-only by default)."""
     if ctx.invoked_subcommand is None:
-        mode_label = (
-            "[bold red]APPLY (Remediation Mode)[/bold red]"
-            if apply
-            else "[bold green]READ-ONLY AUDIT[/bold green]"
+        security_audit(
+            ctx, apply=apply, output_format=output_format, output_file=output_file
         )
-        console.print(
-            Panel.fit(
-                f"[bold magenta]PQ-SysGuard Security Audit[/bold magenta]\nMode: {mode_label}",
-                border_style="magenta",
-            )
-        )
-        table = Table(title="Hardening Audit Results (Placeholder)")
-        table.add_column("Control", style="cyan")
-        table.add_column("Compliance", style="yellow")
-        table.add_column("Finding", style="white")
 
-        table.add_row(
-            "SSH Root Login", "WARNING", "PermitRootLogin is enabled in /etc/ssh/sshd_config"
+
+@security_app.command("audit")
+def security_audit(
+    ctx: typer.Context,
+    apply: Annotated[
+        bool,
+        typer.Option(
+            "--apply",
+            help="Enforce remediation recommendations if available (Read-only by default).",
+        ),
+    ] = False,
+    output_format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Report output format: text, json, html.",
+        ),
+    ] = "text",
+    output_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            "-o",
+            help="Path to write report.",
+        ),
+    ] = None,
+) -> None:
+    """Run full CIS-benchmark-mapped security hardening audit."""
+    fmt = output_format.lower()
+    if fmt not in ("text", "json", "html"):
+        console.print(
+            f"[bold red]Error:[/bold red] Unsupported format '{output_format}'. "
+            "Supported formats: text, json, html."
         )
-        table.add_row(
-            "Shadow File Permissions", "PASS", "/etc/shadow permissions are 0640 or tighter"
+        raise typer.Exit(code=1)
+
+    app_config = _get_app_config(ctx)
+    ssh_cfg = Path(app_config.security.ssh_config_path)
+
+    report = run_full_security_audit(ssh_config_path=ssh_cfg)
+
+    if apply:
+        console.print(
+            "[bold yellow]Notice:[/bold yellow] --apply flag passed. "
+            "PQ-SysGuard presents remediation recommendations. "
+            "Manual review and authorization is required prior to applying system changes."
         )
-        table.add_row(
-            "Open Ports", "PASS", "No unauthorized listening services on public interfaces"
-        )
-        console.print(table)
-        if not apply:
-            console.print(
-                "[dim]Audit complete. Use --apply to enforce automated remediations.[/dim]"
-            )
+
+    if fmt == "text":
+        display_terminal_report(report, console=console)
+    elif fmt == "json":
+        data = export_json_report(report)
+        if output_file:
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            output_file.write_text(data, encoding="utf-8")
+            console.print(f"[green]Saved JSON audit report to {output_file}[/green]")
         else:
-            console.print(
-                "[yellow]Remediation flag detected: Automated fixes execute in Phase 4.[/yellow]"
-            )
+            print(data)
+    elif fmt == "html":
+        html_data = export_html_report(report)
+        if output_file:
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            output_file.write_text(html_data, encoding="utf-8")
+            console.print(f"[green]Saved HTML audit report to {output_file}[/green]")
+        else:
+            print(html_data)
 
 
 # ---------------------------------------------------------------------------
